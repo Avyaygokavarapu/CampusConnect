@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import Create from "@/pages/create";
 import Signup from "@/pages/signup";
 import Login from "@/pages/login";
+import PostDetails from "@/pages/post-details";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/create" component={Create} />
       <Route path="/signup" component={Signup} />
       <Route path="/login" component={Login} />
+      <Route path="/post/:id" component={PostDetails} />
       {/* For mockup purposes, trending points to home or a similar view for now */}
       <Route path="/trending" component={Home} />
       <Route path="/profile" component={Home} />

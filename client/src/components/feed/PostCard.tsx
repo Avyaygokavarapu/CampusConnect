@@ -1,8 +1,9 @@
 import { GlassCard } from "@/components/ui/glass-card";
-import { Heart, Repeat, MoreHorizontal } from "lucide-react";
+import { Heart, Repeat, MoreHorizontal, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Link } from "wouter";
 
 interface PostCardProps {
   content: string;
@@ -10,13 +11,16 @@ interface PostCardProps {
   likes: number;
   reposts: number;
   author: string;
+  id?: string; // Added ID for linking
 }
 
-export function PostCard({ content, timestamp, likes, reposts, author }: PostCardProps) {
+export function PostCard({ content, timestamp, likes, reposts, author, id = "1" }: PostCardProps) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(likes);
 
-  const handleLike = () => {
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (liked) {
       setLikeCount(prev => prev - 1);
     } else {
@@ -25,8 +29,8 @@ export function PostCard({ content, timestamp, likes, reposts, author }: PostCar
     setLiked(!liked);
   };
 
-  return (
-    <GlassCard className="mb-4 group">
+  const CardContent = (
+    <GlassCard className="mb-4 group cursor-pointer hover:border-primary/30 transition-colors">
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground border border-border">
@@ -61,6 +65,11 @@ export function PostCard({ content, timestamp, likes, reposts, author }: PostCar
             <span className="font-medium">{likeCount}</span>
           </button>
           
+          <div className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <MessageSquare className="w-4 h-4" />
+            <span className="font-medium">24</span> {/* Mock comment count */}
+          </div>
+
           <button className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
             <Repeat className="w-4 h-4" />
             <span className="font-medium">{reposts}</span>
@@ -72,5 +81,17 @@ export function PostCard({ content, timestamp, likes, reposts, author }: PostCar
         </button>
       </div>
     </GlassCard>
+  );
+
+  // If we are on the details page, we might render it without the link wrapper
+  // But for the feed, we want it clickable
+  // Ideally, we pass a prop `isLink` but for now let's wrap it conditionally or just always wrap
+  // since nested links are bad, we need to make sure buttons inside don't trigger navigation
+  // Handled by stopPropagation on buttons
+  
+  return (
+    <Link href={`/post/${id}`}>
+      {CardContent}
+    </Link>
   );
 }
