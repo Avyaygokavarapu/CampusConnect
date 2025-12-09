@@ -1,7 +1,6 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import auroraImage from "@assets/generated_images/holographic_aurora_gradient.png";
 
 interface PollOption {
   id: string;
@@ -31,12 +30,9 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
   };
 
   return (
-    <GlassCard className="mb-4 border-neon-purple/30 bg-black/40 overflow-hidden relative">
-      {/* Background Glow */}
-      <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-neon-purple/20 blur-[100px] rounded-full pointer-events-none" />
-
+    <GlassCard className="mb-4">
       <div className="relative z-10">
-        <h3 className="text-xl md:text-2xl font-bold font-display text-white mb-6 leading-tight">
+        <h3 className="text-lg md:text-xl font-bold font-display text-foreground mb-4 leading-tight">
           {question}
         </h3>
 
@@ -51,61 +47,59 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
                 key={option.id}
                 onClick={() => handleVote(option.id)}
                 disabled={!!voted}
-                className="w-full relative h-12 rounded-lg overflow-hidden group text-left"
-                whileHover={!voted ? { scale: 1.02 } : {}}
-                whileTap={!voted ? { scale: 0.98 } : {}}
+                className={cn(
+                  "w-full relative h-12 rounded-lg overflow-hidden group text-left border transition-all duration-200",
+                  voted && isSelected ? "border-primary" : "border-border bg-secondary/30 hover:bg-secondary/50"
+                )}
+                whileTap={!voted ? { scale: 0.99 } : {}}
               >
-                {/* Background Bar */}
-                <div className="absolute inset-0 bg-white/5 border border-white/10 rounded-lg" />
                 
-                {/* Progress Bar (Liquid with Aurora Image) */}
+                {/* Progress Bar (Solid Brand Color) */}
                 {voted && (
                   <motion.div
-                    className="absolute inset-y-0 left-0 overflow-hidden"
+                    className={cn(
+                      "absolute inset-y-0 left-0 opacity-10",
+                      isSelected ? "bg-primary opacity-20" : "bg-muted-foreground opacity-10"
+                    )}
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
-                    transition={{ duration: 1, ease: "circOut" }}
-                  >
-                     <div 
-                        className="absolute inset-0 w-full h-full opacity-80"
-                        style={{ 
-                            backgroundImage: `url(${auroraImage})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            filter: 'brightness(1.2) contrast(1.2)'
-                        }} 
-                     />
-                     {/* Liquid Shimmer Effect Overlay */}
-                     <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent)] animate-gradient-x" style={{ backgroundSize: '200% 100%' }} />
-                  </motion.div>
+                    transition={{ duration: 0.5, ease: "circOut" }}
+                  />
+                )}
+                
+                {/* Leader indicator line */}
+                {voted && isLeader && (
+                   <motion.div 
+                     className="absolute bottom-0 left-0 h-[2px] bg-primary z-20"
+                     initial={{ width: 0 }}
+                     animate={{ width: `${percentage}%` }}
+                   />
                 )}
 
                 {/* Text Content */}
                 <div className="absolute inset-0 flex items-center justify-between px-4 z-10">
-                  <span className={`font-medium transition-colors ${isSelected ? 'text-white' : 'text-foreground/80'}`}>
+                  <span className={cn(
+                    "font-medium text-sm transition-colors",
+                    isSelected ? 'text-primary font-semibold' : 'text-foreground'
+                  )}>
                     {option.text}
                   </span>
                   {voted && (
                     <motion.span 
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="font-mono text-sm font-bold text-white drop-shadow-md"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="font-mono text-xs font-bold text-muted-foreground"
                     >
                       {percentage}%
                     </motion.span>
                   )}
                 </div>
-                
-                {/* Glow for leader */}
-                {voted && isLeader && (
-                   <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(76,207,255,0.3)] rounded-lg pointer-events-none" />
-                )}
               </motion.button>
             );
           })}
         </div>
 
-        <div className="mt-6 flex justify-between items-center text-xs font-mono text-muted-foreground/60 uppercase tracking-widest">
+        <div className="mt-4 flex justify-between items-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
           <span>{totalVotes.toLocaleString()} votes</span>
           <span>{timeLeft} left</span>
         </div>
@@ -113,3 +107,6 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
     </GlassCard>
   );
 }
+
+// Helper to avoid circular dependency since I'm rewriting the whole file
+import { cn } from "@/lib/utils";

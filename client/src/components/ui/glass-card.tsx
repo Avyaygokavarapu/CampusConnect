@@ -8,29 +8,26 @@ interface GlassCardProps extends HTMLMotionProps<"div"> {
   hoverEffect?: boolean;
 }
 
+// Renaming to CampusCard for clarity, though keeping the file name for now to avoid breaking imports elsewhere instantly
 export const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
   ({ children, className, hoverEffect = true, ...props }, ref) => {
     return (
       <motion.div
         ref={ref}
         className={cn(
-          "glass-card rounded-2xl p-6 relative overflow-hidden",
-          hoverEffect && "glass-card-hover",
+          "campus-card rounded-xl p-6 relative overflow-hidden",
+          hoverEffect && "campus-card-hover",
           className
         )}
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         {...props}
       >
-        {/* Subtle noise overlay for texture */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-        
-        {/* Content */}
-        <div className="relative z-10">{children}</div>
+        {children}
       </motion.div>
     );
   }
 );
 
-GlassCard.displayName = "GlassCard";
+GlassCard.displayName = "CampusCard";

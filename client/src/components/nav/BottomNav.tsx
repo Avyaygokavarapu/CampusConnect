@@ -14,8 +14,8 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
-      <nav className="glass-card flex items-center gap-2 p-2 rounded-full pointer-events-auto shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] border-white/10 bg-black/60 backdrop-blur-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none pb-6 pt-4 bg-gradient-to-t from-background via-background/90 to-transparent">
+      <nav className="pointer-events-auto bg-card border border-border shadow-lg rounded-full px-2 py-2 flex items-center gap-1">
         {navItems.map((item) => {
           const isActive = location === item.path;
           const Icon = item.icon;
@@ -24,11 +24,11 @@ export function BottomNav() {
             return (
               <Link key={item.path} href={item.path}>
                 <motion.div
-                  className="mx-2 w-14 h-14 rounded-full bg-gradient-to-tr from-neon-pink to-neon-blue flex items-center justify-center cursor-pointer shadow-[0_0_20px_rgba(255,62,246,0.4)] text-white"
-                  whileHover={{ scale: 1.1, rotate: 180 }}
-                  whileTap={{ scale: 0.9 }}
+                  className="mx-2 w-12 h-12 rounded-full bg-primary flex items-center justify-center cursor-pointer text-primary-foreground shadow-md hover:bg-primary/90 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <Icon className="w-7 h-7" />
+                  <Icon className="w-6 h-6" />
                 </motion.div>
               </Link>
             );
@@ -37,21 +37,20 @@ export function BottomNav() {
           return (
             <Link key={item.path} href={item.path}>
               <div className="relative px-5 py-3 cursor-pointer group">
-                {isActive && (
-                  <motion.div
-                    layoutId="nav-glow"
-                    className="absolute inset-0 bg-white/10 rounded-full blur-md"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
                 <Icon
                   className={cn(
-                    "w-6 h-6 transition-colors duration-300 relative z-10",
+                    "w-6 h-6 transition-colors duration-200",
                     isActive
-                      ? "text-neon-blue drop-shadow-[0_0_8px_rgba(76,207,255,0.8)]"
-                      : "text-muted-foreground group-hover:text-white"
+                      ? "text-primary"
+                      : "text-muted-foreground group-hover:text-foreground"
                   )}
                 />
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-dot"
+                    className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full"
+                  />
+                )}
               </div>
             </Link>
           );
