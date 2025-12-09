@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient"; // Import queryClient
 
 interface PostCardProps {
   content: string;
@@ -31,20 +31,38 @@ export function PostCard({ content, timestamp, likes, reposts, author, id = "1",
     mutationFn: async () => {
       await apiRequest("POST", `/api/posts/${id}/like`);
     },
-    onError: () => {
-      // Revert optimistic update
-      setLiked(prev => !prev);
-      setLikeCount(prev => !liked ? prev - 1 : prev + 1); // Logic reversed because we already toggled 'liked'
+    onMutate: async () => {
+      // Snapshot the previous values
+      const previousLiked = liked;
+      const previousCount = likeCount;
+
+      // Optimistic update
+      const newLiked = !previousLiked;
+      setLiked(newLiked);
+      setLikeCount(newLiked ? previousCount + 1 : previousCount - 1);
+
+      // Return context for rollback
+      return { previousLiked, previousCount };
+    },
+    onSuccess: () => {
+      // 1. Invalidate 'posts' list so the main feed updates
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      
+      // 2. Invalidate specific post details if we are on that page
+      queryClient.invalidateQueries({ queryKey: [`/api/posts/${id}`] });
+    },
+    onError: (_err, _variables, context) => {
+      // Revert if API fails
+      if (context) {
+        setLiked(context.previousLiked);
+        setLikeCount(context.previousCount);
+      }
     }
   });
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    const newLiked = !liked;
-    setLiked(newLiked);
-    setLikeCount(prev => newLiked ? prev + 1 : prev - 1);
     likeMutation.mutate();
   };
 
