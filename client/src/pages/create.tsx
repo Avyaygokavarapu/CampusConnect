@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { X, Send, BarChart2, FileText, Plus, Trash2 } from "lucide-react";
+import { X, Send, BarChart2, FileText, Plus, Trash2, TrendingUp, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 type PostType = 'text' | 'poll';
 
@@ -13,6 +14,7 @@ interface PollOption {
 
 export default function Create() {
   const [postType, setPostType] = useState<PostType>('text');
+  const [isPrediction, setIsPrediction] = useState(false);
   const [text, setText] = useState("");
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState<PollOption[]>([
@@ -145,8 +147,44 @@ export default function Create() {
                       />
                     </div>
 
+                    {/* Betting/Prediction Toggle */}
+                    <div className="flex items-center justify-between bg-secondary/20 p-3 rounded-lg border border-border/50">
+                        <div className="flex items-center gap-2">
+                            <TrendingUp className={cn("w-5 h-5", isPrediction ? "text-primary" : "text-muted-foreground")} />
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-foreground">Prediction Market Mode</span>
+                                <span className="text-xs text-muted-foreground">Turn this poll into a bet with dynamic odds</span>
+                            </div>
+                        </div>
+                         {/* Simple Toggle Switch */}
+                        <button
+                            type="button"
+                            onClick={() => setIsPrediction(!isPrediction)}
+                            className={cn(
+                                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                isPrediction ? "bg-primary" : "bg-muted-foreground/30"
+                            )}
+                        >
+                            <span
+                                className={cn(
+                                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                    isPrediction ? "translate-x-5" : "translate-x-0"
+                                )}
+                            />
+                        </button>
+                    </div>
+
                     <div className="space-y-3">
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Options</label>
+                      <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">Options</label>
+                          {isPrediction && (
+                              <span className="text-[10px] font-mono text-primary flex items-center gap-1">
+                                  <Info className="w-3 h-3" />
+                                  Odds start at 50/50
+                              </span>
+                          )}
+                      </div>
+                      
                       {pollOptions.map((option, index) => (
                         <div key={option.id} className="flex gap-2">
                           <input
@@ -229,7 +267,7 @@ export default function Create() {
                 disabled={!isValid}
                 className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-sm hover:bg-primary/90 hover:shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
               >
-                <span>{postType === 'text' ? 'Post' : 'Create Poll'}</span>
+                <span>{postType === 'text' ? 'Post' : isPrediction ? 'Create Bet' : 'Create Poll'}</span>
                 <Send className="w-4 h-4" />
               </button>
             </div>

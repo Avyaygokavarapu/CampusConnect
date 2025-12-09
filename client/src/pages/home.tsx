@@ -21,6 +21,25 @@ export default function Home() {
           />
         </motion.div>
 
+         {/* Example of a Prediction Market Poll */}
+        <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.15 }}
+        >
+          <PollCard 
+            question="Will finals be postponed due to the heatwave?"
+            options={[
+              { id: "yes", text: "Yes", votes: 150 },
+              { id: "no", text: "No", votes: 450 },
+            ]}
+            totalVotes={600}
+            timeLeft="2d"
+            author="campus_oracle"
+            isPrediction={true}
+          />
+        </motion.div>
+
         <motion.div
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}

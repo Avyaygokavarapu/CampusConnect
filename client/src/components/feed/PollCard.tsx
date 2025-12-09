@@ -2,6 +2,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { TrendingUp } from "lucide-react";
 
 interface PollOption {
   id: string;
@@ -15,9 +16,10 @@ interface PollCardProps {
   totalVotes: number;
   timeLeft: string;
   author: string;
+  isPrediction?: boolean; // New prop for prediction mode
 }
 
-export function PollCard({ question, options: initialOptions, totalVotes: initialTotal, timeLeft, author }: PollCardProps) {
+export function PollCard({ question, options: initialOptions, totalVotes: initialTotal, timeLeft, author, isPrediction = false }: PollCardProps) {
   const [voted, setVoted] = useState<string | null>(null);
   const [options, setOptions] = useState(initialOptions);
   const [totalVotes, setTotalVotes] = useState(initialTotal);
@@ -31,16 +33,34 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
     ));
   };
 
+  // Helper to calculate odds based on inverse probability
+  // If no votes, default to 2.0x (50/50).
+  const getOdds = (votes: number, total: number) => {
+      if (total === 0) return "2.0x";
+      const probability = votes / total;
+      // Avoid division by zero or infinity, cap at reasonable max
+      if (probability < 0.01) return "99x"; 
+      const odds = (1 / probability).toFixed(2);
+      return `${odds}x`;
+  };
+
   return (
-    <GlassCard className="mb-4">
+    <GlassCard className={cn("mb-4", isPrediction && "border-l-4 border-l-primary")}>
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground border border-border">
              {author.substring(0,2).toUpperCase()}
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-foreground leading-none">@{author}</span>
-            <span className="text-xs text-muted-foreground">Poll ends in {timeLeft}</span>
+            <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground leading-none">@{author}</span>
+                {isPrediction && (
+                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-wider">
+                        <TrendingUp className="w-3 h-3" /> Bet
+                    </span>
+                )}
+            </div>
+            <span className="text-xs text-muted-foreground">Ends in {timeLeft}</span>
           </div>
         </div>
       </div>
@@ -55,6 +75,7 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
             const percentage = Math.round((option.votes / totalVotes) * 100) || 0;
             const isSelected = voted === option.id;
             const isLeader = Math.max(...options.map(o => o.votes)) === option.votes && totalVotes > 0;
+            const odds = getOdds(option.votes, totalVotes);
 
             return (
               <motion.button
@@ -98,7 +119,9 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
                   )}>
                     {option.text}
                   </span>
-                  {voted && (
+                  
+                  {/* Result Display: Percentage OR Odds */}
+                  {voted ? (
                     <motion.span 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -106,7 +129,11 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
                     >
                       {percentage}%
                     </motion.span>
-                  )}
+                  ) : isPrediction ? (
+                      <span className="font-mono text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">
+                          Odds: {odds}
+                      </span>
+                  ) : null}
                 </div>
               </motion.button>
             );
@@ -114,7 +141,7 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
         </div>
 
         <div className="mt-4 flex justify-between items-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          <span>{totalVotes.toLocaleString()} votes</span>
+          <span>{totalVotes.toLocaleString()} {isPrediction ? "bets" : "votes"}</span>
         </div>
       </div>
     </GlassCard>
