@@ -35,6 +35,7 @@ export default function Home() {
             ]}
             totalVotes={645}
             timeLeft="22h"
+            author="trend_watcher"
           />
         </motion.div>
 
@@ -65,6 +66,7 @@ export default function Home() {
              ]}
              totalVotes={350}
              timeLeft="4h"
+             author="neuro_punk"
           />
         </motion.div>
         

@@ -1,6 +1,7 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface PollOption {
   id: string;
@@ -13,9 +14,10 @@ interface PollCardProps {
   options: PollOption[];
   totalVotes: number;
   timeLeft: string;
+  author: string;
 }
 
-export function PollCard({ question, options: initialOptions, totalVotes: initialTotal, timeLeft }: PollCardProps) {
+export function PollCard({ question, options: initialOptions, totalVotes: initialTotal, timeLeft, author }: PollCardProps) {
   const [voted, setVoted] = useState<string | null>(null);
   const [options, setOptions] = useState(initialOptions);
   const [totalVotes, setTotalVotes] = useState(initialTotal);
@@ -31,6 +33,18 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
 
   return (
     <GlassCard className="mb-4">
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-xs font-bold text-foreground border border-border">
+             {author.substring(0,2).toUpperCase()}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-foreground leading-none">@{author}</span>
+            <span className="text-xs text-muted-foreground">Poll ends in {timeLeft}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="relative z-10">
         <h3 className="text-lg md:text-xl font-bold font-display text-foreground mb-4 leading-tight">
           {question}
@@ -101,12 +115,8 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
 
         <div className="mt-4 flex justify-between items-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
           <span>{totalVotes.toLocaleString()} votes</span>
-          <span>{timeLeft} left</span>
         </div>
       </div>
     </GlassCard>
   );
 }
-
-// Helper to avoid circular dependency since I'm rewriting the whole file
-import { cn } from "@/lib/utils";
