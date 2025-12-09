@@ -1,11 +1,16 @@
 import React from "react";
 import { BottomNav } from "@/components/nav/BottomNav";
+import { useUser } from "@/context/UserContext";
+import { Coins } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const { auracoins } = useUser();
+
   return (
     <div className="min-h-screen w-full relative bg-background text-foreground overflow-x-hidden selection:bg-primary/20 selection:text-primary">
       {/* Subtle Architectural Grid Background */}
@@ -29,8 +34,24 @@ export function AppLayout({ children }: AppLayoutProps) {
                CampusConnect<span className="text-primary">@IIMA</span>
              </h1>
            </div>
-           <div className="w-8 h-8 rounded-full bg-secondary border border-border flex items-center justify-center text-xs font-medium">
-             ST
+           
+           <div className="flex items-center gap-3">
+             {/* Auracoins Balance */}
+             <div className="flex items-center gap-1.5 bg-amber-100/50 border border-amber-200 px-2.5 py-1 rounded-full text-amber-700 font-mono text-sm">
+                <Coins className="w-3.5 h-3.5 fill-amber-500 text-amber-600" />
+                <motion.span 
+                  key={auracoins}
+                  initial={{ scale: 1.2, color: "#d97706" }}
+                  animate={{ scale: 1, color: "#b45309" }}
+                  className="font-bold"
+                >
+                  {auracoins}
+                </motion.span>
+             </div>
+             
+             <div className="w-8 h-8 rounded-full bg-secondary border border-border flex items-center justify-center text-xs font-medium">
+               ST
+             </div>
            </div>
         </header>
 
