@@ -11,6 +11,8 @@ import Signup from "@/pages/signup";
 import Login from "@/pages/login";
 import PostDetails from "@/pages/post-details";
 
+import Profile from "@/pages/profile";
+
 function Router() {
   return (
     <Switch>
@@ -20,7 +22,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/post/:id" component={PostDetails} />
       <Route path="/trending" component={Home} />
-      <Route path="/profile" component={Home} />
+      <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
   );

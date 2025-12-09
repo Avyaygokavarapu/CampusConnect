@@ -1,29 +1,41 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { MessageSquare, ArrowBigUp, ArrowBigDown, MoreHorizontal, CornerDownRight } from "lucide-react";
+import { MessageSquare, ArrowBigUp, ArrowBigDown, MoreHorizontal, CornerDownRight, Reply, X } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 export interface CommentType {
-  id: string;
+  id: number;
   author: string;
   content: string;
   timestamp: string;
   votes: number;
   replies?: CommentType[];
   level?: number;
+  postId?: number;
 }
 
 interface CommentProps {
   comment: CommentType;
   isLast?: boolean;
+  postId: number;
 }
 
-export function Comment({ comment, isLast }: CommentProps) {
+export function Comment({ comment, isLast, postId }: CommentProps) {
   const [votes, setVotes] = useState(comment.votes);
   const [voteState, setVoteState] = useState<'up' | 'down' | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const handleVote = (type: 'up' | 'down') => {
+    // Optimistic UI for now, no backend endpoint for comment votes yet
     if (voteState === type) {
       setVoteState(null);
       setVotes(type === 'up' ? votes - 1 : votes + 1);
@@ -33,6 +45,33 @@ export function Comment({ comment, isLast }: CommentProps) {
       if (!voteState) setVotes(type === 'up' ? votes + 1 : votes - 1);
       setVoteState(type);
     }
+  };
+
+  const replyMutation = useMutation({
+    mutationFn: async (content: string) => {
+      await apiRequest("POST", `/api/posts/${postId}/comments`, { 
+        content,
+        parentId: comment.id 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/posts/${postId}/comments`] });
+      setIsReplying(false);
+      setReplyText("");
+      toast({ title: "Reply posted!" });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to post reply", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const handleSubmitReply = () => {
+    if (!replyText.trim()) return;
+    replyMutation.mutate(replyText);
   };
 
   const level = comment.level || 0;
@@ -102,7 +141,13 @@ export function Comment({ comment, isLast }: CommentProps) {
                    </button>
                 </div>
 
-                <button className="flex items-center gap-1.5 hover:bg-secondary/50 px-2 py-1 rounded-full transition-colors group">
+                <button 
+                  onClick={() => setIsReplying(!isReplying)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors group",
+                    isReplying ? "bg-primary/10 text-primary" : "hover:bg-secondary/50"
+                  )}
+                >
                   <MessageSquare className="w-3.5 h-3.5 group-hover:text-foreground" />
                   <span className="text-xs font-medium group-hover:text-foreground">Reply</span>
                 </button>
@@ -111,6 +156,46 @@ export function Comment({ comment, isLast }: CommentProps) {
                    <MoreHorizontal className="w-3.5 h-3.5" />
                 </button>
               </div>
+
+              {/* Reply Input */}
+              <AnimatePresence>
+                {isReplying && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-3 overflow-hidden"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        autoFocus
+                        value={replyText}
+                        onChange={(e) => setReplyText(e.target.value)}
+                        placeholder={`Reply to @${comment.author}...`}
+                        className="w-full bg-secondary/30 border border-border rounded-md p-2 text-sm focus:outline-none focus:border-primary resize-none min-h-[60px]"
+                      />
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 text-xs"
+                          onClick={() => setIsReplying(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="h-7 text-xs"
+                          disabled={replyMutation.isPending || !replyText.trim()}
+                          onClick={handleSubmitReply}
+                        >
+                          {replyMutation.isPending ? "Posting..." : "Reply"}
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Recursively render replies */}
@@ -121,6 +206,7 @@ export function Comment({ comment, isLast }: CommentProps) {
                     key={reply.id} 
                     comment={{...reply, level: level + 1}} 
                     isLast={index === comment.replies!.length - 1}
+                    postId={postId}
                   />
                 ))}
               </div>

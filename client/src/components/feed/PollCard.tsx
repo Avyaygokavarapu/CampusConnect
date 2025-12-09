@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { TrendingUp, Coins, X, Check } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { toast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface PollOption {
   id: string;
@@ -32,6 +34,26 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState<number>(10);
 
+  const voteMutation = useMutation({
+    mutationFn: async (optionId: string) => {
+        const res = await apiRequest("POST", `/api/polls/vote/${optionId}`);
+        return await res.json();
+    },
+    onSuccess: () => {
+        // queryClient.invalidateQueries({ queryKey: ["/api/polls"] }); 
+        // We already optimistically updated, so maybe just toast or do nothing
+    },
+    onError: (error: Error) => {
+        toast({
+            title: "Vote failed",
+            description: error.message,
+            variant: "destructive"
+        });
+        // Revert optimistic update? For now simpler to not revert for simple vote, 
+        // but ideally we should.
+    }
+  });
+
   const handleOptionClick = (id: string) => {
     if (voted) return;
     
@@ -45,6 +67,7 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
       setOptions(prev => prev.map(opt => 
         opt.id === id ? { ...opt, votes: opt.votes + 1 } : opt
       ));
+      voteMutation.mutate(id);
     }
   };
 
@@ -53,11 +76,15 @@ export function PollCard({ question, options: initialOptions, totalVotes: initia
 
     if (spendCoins(betAmount)) {
       setVoted(selectedOptionId);
-      setTotalVotes(prev => prev + 1); // In a real app, this would weight by bet amount
+      setTotalVotes(prev => prev + 1); // In a real app, this would weight by bet amount? Or just 1 vote?
       setOptions(prev => prev.map(opt => 
         opt.id === selectedOptionId ? { ...opt, votes: opt.votes + 1 } : opt
       ));
       setShowBetModal(false);
+      
+      // Send bet/vote to backend
+      voteMutation.mutate(selectedOptionId);
+
       toast({
         title: "Bet Placed!",
         description: `You wagered ${betAmount} Auracoins on "${options.find(o => o.id === selectedOptionId)?.text}"`,

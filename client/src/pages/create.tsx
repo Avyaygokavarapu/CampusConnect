@@ -3,7 +3,9 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { X, Send, BarChart2, FileText, Plus, Trash2, TrendingUp, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 type PostType = 'text' | 'poll';
 
@@ -22,12 +24,59 @@ export default function Create() {
     { id: '2', text: '' }
   ]);
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const maxLength = 100;
+
+  const createPostMutation = useMutation({
+    mutationFn: async (content: string) => {
+      await apiRequest("POST", "/api/posts", { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({ title: "Post created!" });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to create post", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
+
+  const createPollMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiRequest("POST", "/api/polls", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/polls"] });
+      toast({ title: "Poll created!" });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Failed to create poll", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    }
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would post data based on postType
-    setLocation("/");
+    if (postType === 'text') {
+      createPostMutation.mutate(text);
+    } else {
+      const options = pollOptions.filter(o => o.text.trim()).map(o => o.text);
+      const data = {
+        question: pollQuestion,
+        isPrediction,
+        options,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default 1 day
+      };
+      createPollMutation.mutate(data);
+    }
   };
 
   const addPollOption = () => {
@@ -56,6 +105,7 @@ export default function Create() {
   const isPollValid = pollQuestion.length > 0 && pollOptions.every(opt => opt.text.trim().length > 0);
   const isTextValid = text.length > 0;
   const isValid = postType === 'text' ? isTextValid : isPollValid;
+  const isPending = createPostMutation.isPending || createPollMutation.isPending;
 
   return (
     <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -81,6 +131,7 @@ export default function Create() {
           <div className="px-6 pt-6 pb-2 shrink-0">
              <div className="flex p-1 bg-secondary rounded-lg mb-4">
                <button
+                 type="button"
                  onClick={() => setPostType('text')}
                  className={cn(
                    "flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all",
@@ -93,6 +144,7 @@ export default function Create() {
                  <span>Text</span>
                </button>
                <button
+                 type="button"
                  onClick={() => setPostType('poll')}
                  className={cn(
                    "flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all",
@@ -264,10 +316,10 @@ export default function Create() {
 
               <button
                 type="submit"
-                disabled={!isValid}
+                disabled={!isValid || isPending}
                 className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-sm hover:bg-primary/90 hover:shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
               >
-                <span>{postType === 'text' ? 'Post' : isPrediction ? 'Create Bet' : 'Create Poll'}</span>
+                <span>{isPending ? "Creating..." : (postType === 'text' ? 'Post' : isPrediction ? 'Create Bet' : 'Create Poll')}</span>
                 <Send className="w-4 h-4" />
               </button>
             </div>

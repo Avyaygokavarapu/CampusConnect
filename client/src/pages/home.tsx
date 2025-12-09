@@ -2,106 +2,96 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { PostCard } from "@/components/feed/PostCard";
 import { PollCard } from "@/components/feed/PollCard";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { PollOption } from "@shared/schema";
+import { Loader2 } from "lucide-react";
+
+interface PostWithAuthor {
+  id: number;
+  content: string;
+  author: string;
+  likes: number;
+  reposts: number;
+  createdAt: string;
+}
+
+interface PollWithAuthor {
+  id: number;
+  question: string;
+  author: string;
+  options: PollOption[];
+  totalVotes: number;
+  isPrediction: boolean;
+  expiresAt: string;
+  createdAt: string;
+}
 
 export default function Home() {
+  const { data: posts, isLoading: loadingPosts } = useQuery<PostWithAuthor[]>({ 
+    queryKey: ["/api/posts"] 
+  });
+  
+  const { data: polls, isLoading: loadingPolls } = useQuery<PollWithAuthor[]>({ 
+    queryKey: ["/api/polls"] 
+  });
+
+  if (loadingPosts || loadingPolls) {
+    return (
+      <AppLayout>
+        <div className="flex justify-center py-8">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const allItems = [
+    ...(posts || []).map(p => ({ type: 'post' as const, data: p, createdAt: new Date(p.createdAt) })),
+    ...(polls || []).map(p => ({ type: 'poll' as const, data: p, createdAt: new Date(p.createdAt) }))
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
   return (
     <AppLayout>
       <div className="space-y-6">
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.1 }}
-        >
-          <PostCard 
-            content="Just saw the future in a dream. It was made of chrome and silence. 🌌"
-            timestamp="2m ago"
-            likes={42}
-            reposts={5}
-            author="cyber_goth"
-          />
-        </motion.div>
+        {allItems.map((item, index) => (
+          <motion.div
+            key={`${item.type}-${item.data.id}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+          >
+            {item.type === 'post' ? (
+              <PostCard 
+                id={item.data.id.toString()}
+                content={(item.data as PostWithAuthor).content}
+                timestamp={formatDistanceToNow(new Date((item.data as PostWithAuthor).createdAt), { addSuffix: true })}
+                likes={(item.data as PostWithAuthor).likes}
+                reposts={(item.data as PostWithAuthor).reposts}
+                author={(item.data as PostWithAuthor).author}
+              />
+            ) : (
+              <PollCard 
+                question={(item.data as PollWithAuthor).question}
+                options={(item.data as PollWithAuthor).options.map(o => ({
+                  id: o.id.toString(),
+                  text: o.text,
+                  votes: o.votes
+                }))}
+                totalVotes={(item.data as PollWithAuthor).totalVotes}
+                timeLeft={formatDistanceToNow(new Date((item.data as PollWithAuthor).expiresAt), { addSuffix: true })}
+                author={(item.data as PollWithAuthor).author}
+                isPrediction={(item.data as PollWithAuthor).isPrediction}
+              />
+            )}
+          </motion.div>
+        ))}
 
-         {/* Example of a Prediction Market Poll */}
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.15 }}
-        >
-          <PollCard 
-            question="Will finals be postponed due to the heatwave?"
-            options={[
-              { id: "yes", text: "Yes", votes: 150 },
-              { id: "no", text: "No", votes: 450 },
-            ]}
-            totalVotes={600}
-            timeLeft="2d"
-            author="campus_oracle"
-            isPrediction={true}
-          />
-        </motion.div>
-
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.2 }}
-        >
-          <PollCard 
-            question="What is the best aesthetic for 2025?"
-            options={[
-              { id: "1", text: "Solarpunk 🌱", votes: 124 },
-              { id: "2", text: "Dark Futurism 🌑", votes: 432 },
-              { id: "3", text: "Y2K Glitch 👾", votes: 89 },
-            ]}
-            totalVotes={645}
-            timeLeft="22h"
-            author="trend_watcher"
-          />
-        </motion.div>
-
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.3 }}
-        >
-          <PostCard 
-            content="The algorithm is feeling particularly moody today. Anyone else getting weird recommendations?"
-            timestamp="15m ago"
-            likes={128}
-            reposts={32}
-            author="glitch_witch"
-          />
-        </motion.div>
-
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.4 }}
-        >
-          <PollCard 
-             question="Should we upload our consciousness?"
-             options={[
-               { id: "a", text: "Yes, immediately 🧠", votes: 200 },
-               { id: "b", text: "No, stay organic 🥩", votes: 150 },
-             ]}
-             totalVotes={350}
-             timeLeft="4h"
-             author="neuro_punk"
-          />
-        </motion.div>
-        
-        <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.5 }}
-        >
-          <PostCard 
-            content="Trying to debug my own thoughts like 01001011 001... 😵‍💫"
-            timestamp="1h ago"
-            likes={892}
-            reposts={104}
-            author="null_ptr"
-          />
-        </motion.div>
+        {allItems.length === 0 && (
+          <div className="text-center py-10 text-muted-foreground">
+            No posts yet. Be the first to share something!
+          </div>
+        )}
       </div>
     </AppLayout>
   );

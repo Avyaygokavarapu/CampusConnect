@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface PostCardProps {
   content: string;
@@ -11,22 +13,38 @@ interface PostCardProps {
   likes: number;
   reposts: number;
   author: string;
-  id?: string; // Added ID for linking
+  id?: string | number; // Added ID for linking
 }
 
 export function PostCard({ content, timestamp, likes, reposts, author, id = "1" }: PostCardProps) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(likes);
 
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/posts/${id}/like`);
+    },
+    onError: () => {
+      // Revert optimistic update
+      setLiked(!liked);
+      setLikeCount(prev => liked ? prev + 1 : prev - 1);
+    }
+  });
+
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
     if (liked) {
-      setLikeCount(prev => prev - 1);
-    } else {
-      setLikeCount(prev => prev + 1);
+        // Optimistically remove like (though backend might not support unlike yet, assuming additive only based on storage.ts)
+        // Since storage.ts only has 'likePost' which increments, we should only allow liking once per session/view for now or implement unlike in backend.
+        // For now, let's just assume we can only increment as per current backend logic.
+        return; 
     }
-    setLiked(!liked);
+
+    setLikeCount(prev => prev + 1);
+    setLiked(true);
+    likeMutation.mutate();
   };
 
   const CardContent = (
@@ -83,12 +101,6 @@ export function PostCard({ content, timestamp, likes, reposts, author, id = "1" 
     </GlassCard>
   );
 
-  // If we are on the details page, we might render it without the link wrapper
-  // But for the feed, we want it clickable
-  // Ideally, we pass a prop `isLink` but for now let's wrap it conditionally or just always wrap
-  // since nested links are bad, we need to make sure buttons inside don't trigger navigation
-  // Handled by stopPropagation on buttons
-  
   return (
     <Link href={`/post/${id}`}>
       {CardContent}
