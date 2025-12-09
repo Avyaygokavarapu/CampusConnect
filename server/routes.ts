@@ -20,8 +20,9 @@ export async function registerRoutes(
   };
 
   // Posts
-  app.get("/api/posts", async (_req, res) => {
-    const posts = await storage.getPosts();
+  app.get("/api/posts", async (req, res) => {
+    const currentUserId = req.isAuthenticated() ? (req.user as any).id : undefined;
+    const posts = await storage.getPosts(currentUserId);
     res.json(posts);
   });
 
@@ -29,7 +30,8 @@ export async function registerRoutes(
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).send("Invalid ID");
     
-    const post = await storage.getPost(id);
+    const currentUserId = req.isAuthenticated() ? (req.user as any).id : undefined;
+    const post = await storage.getPost(id, currentUserId);
     if (!post) return res.status(404).send("Post not found");
     
     const comments = await storage.getComments(id);
@@ -53,7 +55,7 @@ export async function registerRoutes(
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).send("Invalid ID");
 
-    const post = await storage.likePost(id);
+    const post = await storage.toggleLikePost((req.user as any).id, id);
     if (!post) return res.status(404).send("Post not found");
     
     res.json(post);

@@ -1,7 +1,7 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { Heart, Repeat, MoreHorizontal, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
@@ -14,11 +14,18 @@ interface PostCardProps {
   reposts: number;
   author: string;
   id?: string | number; // Added ID for linking
+  isLiked?: boolean;
 }
 
-export function PostCard({ content, timestamp, likes, reposts, author, id = "1" }: PostCardProps) {
-  const [liked, setLiked] = useState(false);
+export function PostCard({ content, timestamp, likes, reposts, author, id = "1", isLiked = false }: PostCardProps) {
+  const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
+
+  // Update state if props change (e.g. refetch)
+  useEffect(() => {
+    setLiked(isLiked);
+    setLikeCount(likes);
+  }, [isLiked, likes]);
 
   const likeMutation = useMutation({
     mutationFn: async () => {
@@ -26,8 +33,8 @@ export function PostCard({ content, timestamp, likes, reposts, author, id = "1" 
     },
     onError: () => {
       // Revert optimistic update
-      setLiked(!liked);
-      setLikeCount(prev => liked ? prev + 1 : prev - 1);
+      setLiked(prev => !prev);
+      setLikeCount(prev => !liked ? prev - 1 : prev + 1); // Logic reversed because we already toggled 'liked'
     }
   });
 
@@ -35,15 +42,9 @@ export function PostCard({ content, timestamp, likes, reposts, author, id = "1" 
     e.preventDefault();
     e.stopPropagation();
     
-    if (liked) {
-        // Optimistically remove like (though backend might not support unlike yet, assuming additive only based on storage.ts)
-        // Since storage.ts only has 'likePost' which increments, we should only allow liking once per session/view for now or implement unlike in backend.
-        // For now, let's just assume we can only increment as per current backend logic.
-        return; 
-    }
-
-    setLikeCount(prev => prev + 1);
-    setLiked(true);
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikeCount(prev => newLiked ? prev + 1 : prev - 1);
     likeMutation.mutate();
   };
 

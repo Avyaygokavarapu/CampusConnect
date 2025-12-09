@@ -4,10 +4,10 @@ import {
   type Poll, type InsertPoll,
   type PollOption, type InsertPollOption,
   type Comment, type InsertComment,
-  users, posts, polls, pollOptions, comments
+  users, posts, polls, pollOptions, comments, postLikes
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, inArray } from "drizzle-orm";
+import { eq, desc, sql, inArray, and } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool } from "./db";
@@ -17,6 +17,7 @@ const PostgresSessionStore = connectPg(session);
 export interface PostWithAuthor extends Post {
   author: string;
   commentCount?: number;
+  isLiked?: boolean;
 }
 
 export interface PollWithAuthor extends Poll {
@@ -33,9 +34,9 @@ export interface IStorage {
 
   // Posts
   createPost(post: InsertPost & { authorId: number }): Promise<Post>;
-  getPosts(): Promise<PostWithAuthor[]>;
-  getPost(id: number): Promise<PostWithAuthor | undefined>;
-  likePost(id: number): Promise<Post | undefined>;
+  getPosts(currentUserId?: number): Promise<PostWithAuthor[]>;
+  getPost(id: number, currentUserId?: number): Promise<PostWithAuthor | undefined>;
+  toggleLikePost(userId: number, postId: number): Promise<Post | undefined>;
 
   // Polls
   createPoll(poll: InsertPoll & { authorId: number }): Promise<Poll>;
@@ -89,11 +90,15 @@ export class DatabaseStorage implements IStorage {
     return newPost;
   }
 
-  async getPosts(): Promise<PostWithAuthor[]> {
+  async getPosts(currentUserId?: number): Promise<PostWithAuthor[]> {
     const result = await db.select({
       post: posts,
       author: users.username,
       commentCount: sql<number>`count(${comments.id})`.mapWith(Number),
+      // Check if liked by current user if userId is provided
+      isLiked: currentUserId 
+        ? sql<boolean>`EXISTS(SELECT 1 FROM ${postLikes} WHERE ${postLikes.postId} = ${posts.id} AND ${postLikes.userId} = ${currentUserId})`
+        : sql<boolean>`false`
     })
     .from(posts)
     .leftJoin(users, eq(posts.authorId, users.id))
@@ -104,15 +109,19 @@ export class DatabaseStorage implements IStorage {
     return result.map(row => ({
       ...row.post,
       author: row.author || "Unknown",
-      commentCount: row.commentCount || 0
+      commentCount: row.commentCount || 0,
+      isLiked: row.isLiked
     }));
   }
 
-  async getPost(id: number): Promise<PostWithAuthor | undefined> {
+  async getPost(id: number, currentUserId?: number): Promise<PostWithAuthor | undefined> {
     const [result] = await db.select({
       post: posts,
       author: users.username,
       commentCount: sql<number>`count(${comments.id})`.mapWith(Number),
+      isLiked: currentUserId 
+        ? sql<boolean>`EXISTS(SELECT 1 FROM ${postLikes} WHERE ${postLikes.postId} = ${posts.id} AND ${postLikes.userId} = ${currentUserId})`
+        : sql<boolean>`false`
     })
     .from(posts)
     .leftJoin(users, eq(posts.authorId, users.id))
@@ -125,18 +134,36 @@ export class DatabaseStorage implements IStorage {
     return {
       ...result.post,
       author: result.author || "Unknown",
-      commentCount: result.commentCount || 0
+      commentCount: result.commentCount || 0,
+      isLiked: result.isLiked
     };
   }
 
-  async likePost(id: number): Promise<Post | undefined> {
-    const [updatedPost] = await db
-      .update(posts)
-      .set({ likes: sql`${posts.likes} + 1` })
-      .where(eq(posts.id, id))
-      .returning();
-      
-    return updatedPost;
+  async toggleLikePost(userId: number, postId: number): Promise<Post | undefined> {
+    return await db.transaction(async (tx) => {
+      const [existingLike] = await tx
+        .select()
+        .from(postLikes)
+        .where(and(eq(postLikes.userId, userId), eq(postLikes.postId, postId)));
+
+      if (existingLike) {
+        await tx.delete(postLikes).where(eq(postLikes.id, existingLike.id));
+        const [updatedPost] = await tx
+          .update(posts)
+          .set({ likes: sql`${posts.likes} - 1` })
+          .where(eq(posts.id, postId))
+          .returning();
+        return updatedPost;
+      } else {
+        await tx.insert(postLikes).values({ userId, postId });
+        const [updatedPost] = await tx
+          .update(posts)
+          .set({ likes: sql`${posts.likes} + 1` })
+          .where(eq(posts.id, postId))
+          .returning();
+        return updatedPost;
+      }
+    });
   }
 
   // Polls

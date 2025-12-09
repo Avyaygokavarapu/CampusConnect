@@ -20,6 +20,7 @@ interface PostWithAuthor {
   createdAt: string;
   type: "text" | "poll";
   pollId?: number;
+  isLiked?: boolean;
 }
 
 // Interface for raw comment from API
@@ -155,6 +156,7 @@ export default function PostDetails() {
             likes={post.likes}
             reposts={0} // Not implemented yet
             author={post.author}
+            isLiked={post.isLiked}
           />
         </motion.div>
 

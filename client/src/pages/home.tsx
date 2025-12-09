@@ -14,6 +14,7 @@ interface PostWithAuthor {
   likes: number;
   reposts: number;
   createdAt: string;
+  isLiked?: boolean;
 }
 
 interface PollWithAuthor {
@@ -69,6 +70,7 @@ export default function Home() {
                 likes={(item.data as PostWithAuthor).likes}
                 reposts={(item.data as PostWithAuthor).reposts}
                 author={(item.data as PostWithAuthor).author}
+                isLiked={(item.data as PostWithAuthor).isLiked}
               />
             ) : (
               <PollCard 
