@@ -26,7 +26,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <div className="w-4 h-4 border-2 border-white rounded-full" />
              </div>
              <h1 className="text-xl font-bold font-display tracking-tight text-foreground">
-               Campus<span className="text-primary">Connect</span>
+               CampusConnect<span className="text-primary">@IIMA</span>
              </h1>
            </div>
            <div className="w-8 h-8 rounded-full bg-secondary border border-border flex items-center justify-center text-xs font-medium">
