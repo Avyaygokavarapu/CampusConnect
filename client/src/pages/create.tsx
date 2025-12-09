@@ -1,9 +1,9 @@
-import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { X } from "lucide-react";
+import { X, Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Create() {
   const [text, setText] = useState("");
@@ -18,82 +18,88 @@ export default function Create() {
 
   const progress = (text.length / maxLength) * 100;
   
-  // Color shift based on length
-  const progressColor = progress > 90 ? "text-neon-pink" : progress > 50 ? "text-neon-purple" : "text-neon-blue";
+  // Color shift based on length - using brand colors now
+  const isNearLimit = progress > 90;
+  const progressColor = isNearLimit ? "text-destructive" : "text-primary";
+  const ringColor = isNearLimit ? "text-destructive" : "text-primary";
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
       <motion.div 
         className="w-full max-w-lg"
-        initial={{ scale: 0.9, opacity: 0, rotateX: 10 }}
-        animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: "spring", duration: 0.6 }}
+        initial={{ scale: 0.95, opacity: 0, y: 10 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       >
-        <GlassCard className="border-neon-pink/20 shadow-[0_0_50px_rgba(255,62,246,0.1)]">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-display font-bold text-white tracking-wide uppercase">Broadcast</h2>
+        <div className="bg-card border border-border shadow-2xl rounded-xl overflow-hidden">
+          {/* Header */}
+          <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-secondary/30">
+            <h2 className="text-lg font-display font-bold text-foreground tracking-tight">Create Post</h2>
             <button 
               onClick={() => setLocation("/")}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 -mr-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
             >
-              <X className="w-6 h-6 text-muted-foreground" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="relative mb-8">
+          <form onSubmit={handleSubmit} className="p-6">
+            <div className="relative mb-6">
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="What is happening in the void?"
-                className="w-full bg-transparent text-2xl md:text-3xl font-display font-bold text-white placeholder:text-white/20 outline-none resize-none min-h-[150px] leading-tight"
+                placeholder="What's on your mind?"
+                className="w-full bg-transparent text-xl font-sans text-foreground placeholder:text-muted-foreground/60 outline-none resize-none min-h-[120px] leading-relaxed selection:bg-primary/20"
                 maxLength={maxLength}
                 autoFocus
               />
             </div>
 
-            <div className="flex justify-between items-center">
-              {/* Circular Progress Indicator */}
-              <div className="relative w-12 h-12 flex items-center justify-center">
-                <svg className="w-full h-full -rotate-90">
-                  <circle
-                    cx="24"
-                    cy="24"
-                    r="20"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    className="text-white/5"
-                  />
-                  <circle
-                    cx="24"
-                    cy="24"
-                    r="20"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    strokeDasharray={125.6}
-                    strokeDashoffset={125.6 - (progress / 100) * 125.6}
-                    className={`transition-all duration-300 ${progressColor}`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className={`absolute text-xs font-mono font-bold ${progressColor}`}>
-                  {maxLength - text.length}
-                </span>
+            <div className="flex justify-between items-center pt-2">
+              {/* Character Counter */}
+              <div className="flex items-center gap-3">
+                 <div className="relative w-8 h-8 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90">
+                    <circle
+                      cx="16"
+                      cy="16"
+                      r="14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      className="text-muted"
+                    />
+                    <circle
+                      cx="16"
+                      cy="16"
+                      r="14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeDasharray={87.96}
+                      strokeDashoffset={87.96 - (progress / 100) * 87.96}
+                      className={`transition-all duration-300 ${ringColor}`}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className={cn("absolute text-[10px] font-mono font-bold", progressColor)}>
+                    {maxLength - text.length}
+                  </span>
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={text.length === 0}
-                className="px-8 py-3 rounded-full bg-gradient-to-r from-neon-pink to-neon-purple text-white font-bold tracking-wide shadow-[0_0_20px_rgba(255,62,246,0.4)] hover:shadow-[0_0_30px_rgba(255,62,246,0.6)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm shadow-sm hover:bg-primary/90 hover:shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
               >
-                TRANSMIT
+                <span>Post</span>
+                <Send className="w-4 h-4" />
               </button>
             </div>
           </form>
-        </GlassCard>
+        </div>
       </motion.div>
     </div>
   );
